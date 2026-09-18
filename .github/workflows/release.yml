@@ -1,0 +1,68 @@
+name: Build & Release RYZELLX SA-MP
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    env:
+      ANDROID_HOME: /opt/android-sdk
+      ANDROID_SDK_ROOT: /opt/android-sdk
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK cmdline-tools
+        run: |
+          mkdir -p /opt/android-sdk/cmdline-tools
+          curl -sL -o /tmp/cmdline.zip \
+            "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+          unzip -q /tmp/cmdline.zip -d /opt/android-sdk/cmdline-tools
+          mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest
+          yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
+
+      - name: Install SDK packages (platform 34, build-tools 34, NDK 26, cmake)
+        run: |
+          /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager \
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "ndk;26.2.11394342" \
+            "cmake;3.22.1" > /dev/null
+
+      - name: Build release APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: app/build/outputs/apk/release/*.apk
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/release/*.apk
+          generate_release_notes: false
+          body: |
+            RYZELLX SA-MP Mobile — build otomatis dari CI.
+            - Client SA-MP 2.10 (open source, kuzia15/SAMP-Mobile GTA-2.10)
+            - ARM32 + ARM64 (compatible semua HP/tablet)
+            - minSdk 26 (Android 8.0+), targetSdk 34
+            - Requires game cache: /storage/emulated/0/GTA/
+          overwrite_files: true
