@@ -25,22 +25,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install Android SDK cmdline-tools
-        run: |
-          mkdir -p /opt/android-sdk/cmdline-tools
-          curl -sL -o /tmp/cmdline.zip \
-            "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
-          unzip -q /tmp/cmdline.zip -d /opt/android-sdk/cmdline-tools
-          mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest
-          yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
-
-      - name: Install SDK packages (platform 34, build-tools 34, NDK 26, cmake)
-        run: |
-          /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager \
-            "platforms;android-34" \
-            "build-tools;34.0.0" \
-            "ndk;26.2.11394342" \
-            "cmake;3.22.1" > /dev/null
+      - name: Set up Android SDK (NDK + cmake, cached)
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 'latest'
+          cache: true
 
       - name: Fetch prebuilt game engine libs (libGTASA/OpenAL, from upstream)
         run: |
