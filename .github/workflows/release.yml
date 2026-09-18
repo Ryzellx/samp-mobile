@@ -42,6 +42,14 @@ jobs:
             "ndk;26.2.11394342" \
             "cmake;3.22.1" > /dev/null
 
+      - name: Fetch prebuilt game engine libs (libGTASA/OpenAL, from upstream)
+        run: |
+          BASE="https://raw.githubusercontent.com/kuzia15/SAMP-Mobile/GTA-2.10/app/src/main/jniLibs"
+          curl -sfL -o app/src/main/jniLibs/armeabi-v7a/libGTASA.so "$BASE/armeabi-v7a/libGTASA.so"
+          curl -sfL -o app/src/main/jniLibs/arm64-v8a/libGTASA.so "$BASE/arm64-v8a/libGTASA.so"
+          curl -sfL -o app/src/main/jniLibs/arm64-v8a/libOpenAL64.so "$BASE/arm64-v8a/libOpenAL64.so"
+          find app/src/main/jniLibs -name "*.so" -size +1M -exec ls -lh {} \;
+
       - name: Build release APK
         run: |
           chmod +x gradlew
