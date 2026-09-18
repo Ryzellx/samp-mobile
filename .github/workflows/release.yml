@@ -10,8 +10,8 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     env:
-      ANDROID_HOME: /opt/android-sdk
-      ANDROID_SDK_ROOT: /opt/android-sdk
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
 
     steps:
       - name: Checkout
@@ -25,11 +25,22 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK (NDK + cmake, cached)
-        uses: android-actions/setup-android@v3
+      - name: Install NDK + cmake (retry loop, cached)
+        run: |
+          SDKM="$(ls "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | head -1)"
+          [ -z "$SDKM" ] && SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          echo "sdkmanager: $SDKM"
+          yes | "$SDKM" --licenses > /dev/null 2>&1 || true
+          for i in 1 2 3; do
+            "$SDKM" "platforms;android-34" "build-tools;34.0.0" "ndk;26.2.11394342" "cmake;3.22.1" --channel=0 >/dev/null && { echo "SDK packages OK (attempt $i)"; break; } || { echo "attempt $i gagal, retry..."; sleep 8; }
+          done
+          "$SDKM" --list_installed | grep -E "ndk|cmake|platforms;android-34|build-tools;34" | head
+
+      - name: Cache Android SDK (NDK)
+        uses: actions/cache@v4
         with:
-          cmdline-tools-version: 'latest'
-          cache: true
+          path: ${{ env.ANDROID_HOME }}
+          key: android-sdk-ndk26-${{ runner.os }}
 
       - name: Fetch prebuilt game engine libs (libGTASA/OpenAL, from upstream)
         run: |
