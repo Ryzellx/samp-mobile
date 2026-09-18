@@ -50,6 +50,11 @@ jobs:
           curl -sfL -o app/src/main/jniLibs/arm64-v8a/libOpenAL64.so "$BASE/arm64-v8a/libOpenAL64.so"
           find app/src/main/jniLibs -name "*.so" -size +1M -exec ls -lh {} \;
 
+      - name: Set up Gradle (cached distribution + dependencies)
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
       - name: Build release APK
         run: |
           chmod +x gradlew
